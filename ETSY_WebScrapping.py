@@ -7,26 +7,15 @@ from time import sleep
 import requests
 
 product_names=[]
-reviews_list=[]
-urls=[]
+list_of_reviews=[]
+product_urls=[]
 
 global browser
 global search_url
 search_url="https://www.etsy.com/in-en/c/jewelry/earrings/ear-jackets-and-climbers"
-# grab_urls=requests.get(search_url)
-# soup=BeautifulSoup(grab_urls.text,'html')
 
-# pages=soup.find(class_="wt-action-group__item-container")
-# all_pages=pages.findAll('a')
-# print(len(all_pages))
-# for link in soup.find("div",class_="wt-show-lg appears-ready").find("nav").find("ul").findAll("li")[-1].findAll('a'):
-#     urls.append(link.get_attribute('href'))
-#browser=webdriver.Chrome("D:/Forsk/VIDEOS/chromedriver.exe")
-
-
+#function stores all the products from all pages 
 def search_products(search_url):
-    
-    urls=[]
     
   
     browser=webdriver.Chrome(executable_path="chromedriver.exe")
@@ -45,20 +34,15 @@ def search_products(search_url):
         product = browser.find_element_by_xpath(f'//*[@id="content"]/div/div[1]/div/div[3]/div[2]/div[2]/div[2]/div/div/ul/li[{i}]/div/a')
         
         
-        urls.append(product.get_attribute('href'))
+        product_urls.append(product.get_attribute('href'))
         
-    for url in urls:
-        try:
-            
-            find_reviews(url)
-        except:
-            continue
     
     
-    #next_page=bs.find("div",class_="wt-flex-xl-5 wt-flex-wrap").find("nav").find("ul").findAll("li")[-1].text
+    
+    #next_page=soup.find("div",class_="wt-flex-xl-5 wt-flex-wrap").find("nav").find("ul").findAll("li")[-1].text
         
    
-    
+    #recurssively iterate over the next pages
     next_page=soup.find("div",class_="wt-show-lg appears-ready").find("nav").find("ul").findAll("li")[-1].text
     print(next_page.strip())
     
@@ -70,72 +54,74 @@ def search_products(search_url):
         next_page_url = next_page_partial
         print(next_page_url)
         
-        yield browser.get
+        search_products(next_page_url)
     else:
-          return None
+        None
+        
     
     
         
         
    
         
-   
-        
 
-
-def find_reviews(product_url):
+#find reviews for each products
+def find_reviews():
     
-        
-    
-        
-    browser=webdriver.Chrome(executable_path="chromedriver.exe")
-        
-    browser.get(product_url)
-    product_html=browser.page_source
-    bs=BeautifulSoup(product_html,'html')
-                
-    
-                
-    list_reviews=bs.find("div",{"class":"wt-grid wt-grid--block wt-mb-xs-0"})
-    total_reviews=len(list_reviews.findAll("p",{"class":"wt-text-truncate--multi-line wt-break-word"}))
-    print(total_reviews)
-    product_names.append(bs.find("h1",class_="wt-text-body-03 wt-line-height-tight wt-break-word wt-mb-xs-1").text.replace('/n','').strip())
-    for i in range(total_reviews):
+    for url in product_urls:
         try:
+             browser=webdriver.Chrome(executable_path="chromedriver.exe")
+        
+             browser.get(url)
+             product_html=browser.page_source
+             bs=BeautifulSoup(product_html,'html')
+                
+    
+                
+             list_reviews=bs.find("div",{"class":"wt-grid wt-grid--block wt-mb-xs-0"})
+             reviews_len=len(list_reviews.findAll("p",{"class":"wt-text-truncate--multi-line wt-break-word"}))
+         
+             product_names.append(bs.find("h1",class_="wt-text-body-03 wt-line-height-tight wt-break-word wt-mb-xs-1").text.replace('/n','').strip())
+             for i in range(1,reviews_len+1):
+                 try:
            
-            reviews_list.append(bs.select(f'#review-preview-toggle-{i}')[0].getText().strip())
-        except:
-            continue
+                     list_of_reviews.append(bs.select(f'#review-preview-toggle-{i}')[0].getText().strip())
+                 except:
+                     continue
             
        
        
         
-    while(True):
-        try:
-            next_button = browser.find_element_by_xpath('//*[@id="reviews"]/div[2]/nav/ul/li[position() = last()]/a[contains(@href, "https")]')
-            if next_button != None:
-                next_button.click()
-                sleep(5)
-                html = browser.page_source
-                soup = BeautifulSoup(html,'html')
-                list_reviews=soup.find("div",{"class":"wt-grid wt-grid--block wt-mb-xs-0"})
-                
-                reviews_len=len(list_reviews.findAll("p",{"class":"wt-text-truncate--multi-line wt-break-word"}))
+             while(True):
+                  try:
+                      next_button = browser.find_element_by_xpath('//*[@id="reviews"]/div[2]/nav/ul/li[position() = last()]/a[contains(@href, "https")]')
+                      if next_button != None:
+                          next_button.click()
+                          sleep(5)
+                          html = browser.page_source
+                          bs = BeautifulSoup(html,'html')
+                          list_reviews=bs.find("div",{"class":"wt-grid wt-grid--block wt-mb-xs-0"})
+                          reviews_len=len(list_reviews.findAll("p",{"class":"wt-text-truncate--multi-line wt-break-word"}))
          
-                #print(reviews_len)
-                for i in range(reviews_len):
-                    try:
-                        #product_names.append(bs.find("h1",class_="wt-text-body-03 wt-line-height-tight wt-break-word wt-mb-xs-1").text.replace('/n','').strip())
-                        reviews_list.append(soup.select(f'#review-preview-toggle-{i}')[0].getText().strip())
-                    except:
-                        continue
-                            
-                            
-        except Exception as e:
-            print('finsish : ', e)
-            break
                 
-    #return reviews_list
+                          for i in range(1,reviews_len+1):
+                              try:
+                                  list_of_reviews.append(bs.select(f'#review-preview-toggle-{i}')[0].getText().strip())
+                              except:
+                                  continue
+                            
+                            
+                  except Exception as e:
+                      print('finsish : ', e)
+                      break
+            
+        except:
+            continue
+    
+        
+   
+                
+    
      
   
     
@@ -156,26 +142,28 @@ def find_reviews(product_url):
         
         
 
+def web_scrapping():
+    
+
+    search_products(search_url)
+    find_reviews()
 
 
-search_products(search_url)
+    print(len(list_of_reviews))
+    scrappedReviews=pd.DataFrame(list_of_reviews,index=None,columns=['reviews'])
+#scrappedReviews['reviews']=list_reviews
 
-scrappedReviews=pd.DataFrame()
-
-scrappedReviews['Product']=product_names
-scrappedReviews['Reviews']=reviews_list
-
-scrappedReviews.to_csv('scrappedReviewsAll.csv')
+    scrappedReviews.to_csv('scrappedReviewsAll.csv')
 
 
-df = pd.read_csv('scrappedReviewsAll.csv')
-conn = sql.connect('scrappedReviewsAll.db')
-df.to_sql('scrappedReviewsAllTable', conn)  
+    df = pd.read_csv('scrappedReviewsAll.csv')
+    conn = sql.connect('scrappedReviewsAll.db')
+    df.to_sql('scrappedReviewsAllTable', conn)  
 
 
-reviews=None
-product_names=None
-reviews_list=None
+    #reviews=None
+    # product_names=None
+    # list_of_reviews=None
 
-# # for review in reviews[1,10]:
-# #     print(review)
+if __name__=='__main__':
+    web_scrapping()
